@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XM WebTrader - Financial Trading Platform</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --bg-main: #12171d;
+            --bg-header: #1b222a;
+            --bg-card: #182026;
+            --bg-hover: #242f38;
+            --border: #28333e;
+            --text: #e1e8ed;
+            --text-muted: #8a9ba8;
+            --xm-red: #d9381e;
+            --xm-red-hover: #f04328;
+            --xm-green: #00b060;
+            --xm-green-hover: #00cd70;
+            --accent-blue: #2d82b7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* XM Top Header */
+        header {
+            background-color: var(--bg-header);
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+
+        .logo span {
+            background: var(--xm-red);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .account-bar {
+            display: flex;
+            gap: 1.8rem;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .acc-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .acc-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+        }
+
+        .acc-val {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .btn-deposit {
+            background-color: var(--xm-green);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-deposit:hover {
+            background-color: var(--xm-green-hover);
+        }
+
+        /* Main Workspace Grid Layout */
+        .workspace {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 1fr 200px;
+            height: calc(100vh - 54px);
+        }
+
+        /* Left Market Watch Panel */
+        .panel-marketwatch {
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            grid-row: 1 / span 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            display: flex;
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 0.7rem 0.5rem;
+            text-align: center;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-item.active {
+            color: var(--text);
+            border-bottom-color: var(--xm-red);
+            background-color: var(--bg-card);
+        }
+
+        .symbol-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .symbol-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .symbol-row:hover, .symbol-row.selected {
+            background-color: var(--bg-hover);
+        }
+
+        .sym-title {
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+
+        .sym-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .sym-prices {
+            display: flex;
+            gap: 12px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .bid-price { color: var(--xm-red); }
+        .ask-price { color: var(--xm-green); }
+
+        /* Center Chart Workspace */
+        .panel-chart {
+            background-color: var(--bg-main);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chart-header {
+            background-color: var(--bg-header);
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chart-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .timeframes {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .tf-btn {
+            background: none;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .tf-btn.active, .tf-btn:hover {
+            color: var(--text);
+            background-color: var(--bg-hover);
+            border-color: var(--border);
+        }
+
+        #chart-container {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Right Order Ticket Panel */
+        .panel-orderticket {
+            background-color: var(--bg-card);
+            grid-row: 1 / span 2;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .section-header {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .execution-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+
+        .btn-trade {
+            padding: 0.9rem 0.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #fff;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn-trade:hover { opacity: 0.9; }
+        .btn-trade-sell { background-color: var(--xm-red); }
+        .btn-trade-buy { background-color: var(--xm-green); }
+
+        .btn-trade-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .btn-trade-price {
+            font-size: 1.05rem;
+            font-weight: bold;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .input-control {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            padding: 0.65rem;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .input-control:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .trade-summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Bottom Positions & Orders Panel */
+        .panel-positions {
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pos-table-wrap {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-header);
+            color: var(--text-muted);
+            padding: 0.6rem 0.8rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.6rem 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-close-pos {
+            background-color: var(--xm-red);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.72rem;
+        }
+
+        .btn-close-pos:hover {
+            background-color: var(--xm-red-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <span>XM</span> WEBTRADER
+        </div>
+        <div class="account-summary">
+            <div class="account-bar">
+                <div class="acc-item">
+                    <span class="acc-label">Account</span>
+                    <span class="acc-val">Demo (USD) #892104</span>
+                </div>
+                <div class="acc-item">
+                    <span class="acc-label">Balance</span>
+                    <span class="acc-val" id="val-balance">$10,000.00</span>
+                </div>
+                <div class="acc-item">
+                    <span class="acc-label">Equity</span>
+                    <span class="acc-val" id="val-equity">$10,000.00</span>
+                </div>
+                <div class="acc-item">
+                    <span class="acc-label">Margin Level</span>
+                    <span class="acc-val" id="val-margin-level">0.00%</span>
+                </div>
+                <button class="btn-deposit">Deposit Funds</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="workspace">
+
+        <div class="panel-marketwatch">
+            <div class="panel-tabs">
+                <div class="tab-item active">FOREX</div>
+                <div class="tab-item">CRYPTO</div>
+                <div class="tab-item">INDICES</div>
+                <div class="tab-item">COMMODITIES</div>
+            </div>
+            <div class="symbol-list" id="market-watch-list">
+                </div>
+        </div>
+
+        <div class="panel-chart">
+            <div class="chart-header">
+                <div class="chart-info">
+                    <span id="active-symbol-title">EUR/USD</span>
+                    <span id="active-symbol-price" style="color: var(--xm-green);">1.08515</span>
+                </div>
+                <div class="timeframes">
+                    <button class="tf-btn active">M1</button>
+                    <button class="tf-btn">M5</button>
+                    <button class="tf-btn">M15</button>
+                    <button class="tf-btn">H1</button>
+                    <button class="tf-btn">D1</button>
+                </div>
+            </div>
+            <div id="chart-container"></div>
+        </div>
+
+        <div class="panel-orderticket">
+            <div class="section-header">Order Ticket</div>
+            
+            <div class="execution-buttons">
+                <div class="btn-trade btn-trade-sell" onclick="submitTrade('SELL')">
+                    <div class="btn-trade-label">Sell Market</div>
+                    <div class="btn-trade-price" id="ticket-bid">1.08500</div>
+                </div>
+                <div class="btn-trade btn-trade-buy" onclick="submitTrade('BUY')">
+                    <div class="btn-trade-label">Buy Market</div>
+                    <div class="btn-trade-price" id="ticket-ask">1.08515</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Volume (Standard Lots)</label>
+                <input type="number" class="input-control" id="trade-volume" value="0.10" step="0.01" min="0.01" onchange="calculateMargin()">
+            </div>
+
+            <div class="input-group">
+                <label>Stop Loss (Price Target)</label>
+                <input type="number" class="input-control" id="trade-sl" placeholder="Optional" step="0.0001">
+            </div>
+
+            <div class="input-group">
+                <label>Take Profit (Price Target)</label>
+                <input type="number" class="input-control" id="trade-tp" placeholder="Optional" step="0.0001">
+            </div>
+
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div class="trade-summary-row">
+                    <span>Required Margin:</span>
+                    <span id="summary-margin">$20.00</span>
+                </div>
+                <div class="trade-summary-row">
+                    <span>Leverage:</span>
+                    <span>1:100</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-positions">
+            <div class="panel-tabs">
+                <div class="tab-item active">OPEN POSITIONS (<span id="open-count">0</span>)</div>
+                <div class="tab-item">PENDING ORDERS</div>
+                <div class="tab-item">CLOSED HISTORY</div>
+            </div>
+            <div class="pos-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Symbol</th>
+                            <th>Type</th>
+                            <th>Lots</th>
+                            <th>Open Price</th>
+                            <th>Current Price</th>
+                            <th>S/L</th>
+                            <th>T/P</th>
+                            <th>Profit / Loss</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // State Management
+        let selectedSymbol = 'EUR/USD';
+        let accountBalance = 10000.00;
+        let activePositions = [];
+
+        const marketData = {
+            'EUR/USD': { bid: 1.08500, ask: 1.08515, decimals: 5, category: 'Forex' },
+            'GBP/USD': { bid: 1.26420, ask: 1.26440, decimals: 5, category: 'Forex' },
+            'USD/JPY': { bid: 155.200, ask: 155.220, decimals: 3, category: 'Forex' },
+            'XAU/USD': { bid: 2380.50, ask: 2380.90, decimals: 2, category: 'Commodities' },
+            'BTC/USD': { bid: 64150.00, ask: 64180.00, decimals: 2, category: 'Crypto' },
+            'US100':   { bid: 18450.00, ask: 18453.00, decimals: 2, category: 'Indices' }
+        };
+
+        // Render Market Watch List
+        function renderMarketWatch() {
+            const listContainer = document.getElementById('market-watch-list');
+            listContainer.innerHTML = '';
+
+            Object.keys(marketData).forEach(sym => {
+                const item = marketData[sym];
+                const row = document.createElement('div');
+                row.className = `symbol-row ${sym === selectedSymbol ? 'selected' : ''}`;
+                row.onclick = () => selectSymbol(sym);
+
+                row.innerHTML = `
+                    <div>
+                        <div class="sym-title">${sym}</div>
+                        <div class="sym-desc">${item.category}</div>
+                    </div>
+                    <div class="sym-prices">
+                        <span class="bid-price" id="mw-bid-${sym}">${item.bid.toFixed(item.decimals)}</span>
+                        <span class="ask-price" id="mw-ask-${sym}">${item.ask.toFixed(item.decimals)}</span>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+        }
+
+        // Initialize Lightweight Chart Component
+        const chartContainer = document.getElementById('chart-container');
+        const chart = LightweightCharts.createChart(chartContainer, {
+            layout: {
+                backgroundColor: '#12171d',
+                textColor: '#8a9ba8',
+            },
+            grid: {
+                vertLines: { color: '#1f2831' },
+                horzLines: { color: '#1f2831' },
+            },
+            timeScale: {
+                timeVisible: true,
+                secondsVisible: true,
+            }
+        });
+
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#00b060',
+            downColor: '#d9381e',
+            borderVisible: false,
+            wickUpColor: '#00b060',
+            wickDownColor: '#d9381e'
+        });
+
+        // Generate Simulated Initial Chart Candles
+        function generateHistoricalData(basePrice, decimals) {
+            let data = [];
+            let time = Math.floor(Date.now() / 1000) - (100 * 60);
+            let currentPrice = basePrice;
+
+            for (let i = 0; i < 100; i++) {
+                let delta = (Math.random() - 0.495) * (basePrice * 0.001);
+                let open = currentPrice;
+                let close = open + delta;
+                let high = Math.max(open, close) + (Math.random() * basePrice * 0.0004);
+                let low = Math.min(open, close) - (Math.random() * basePrice * 0.0004);
+
+                data.push({
+                    time: time + (i * 60),
+                    open: parseFloat(open.toFixed(decimals)),
+                    high: parseFloat(high.toFixed(decimals)),
+                    low: parseFloat(low.toFixed(decimals)),
+                    close: parseFloat(close.toFixed(decimals))
+                });
+                currentPrice = close;
+            }
+            return data;
+        }
+
+        function selectSymbol(sym) {
+            selectedSymbol = sym;
+            document.getElementById('active-symbol-title').innerText = sym;
+            renderMarketWatch();
+
+            const data = generateHistoricalData(marketData[sym].bid, marketData[sym].decimals);
+            candleSeries.setData(data);
+            updateOrderPanel();
+        }
+
+        function updateOrderPanel() {
+            const sym = marketData[selectedSymbol];
+            document.getElementById('ticket-bid').innerText = sym.bid.toFixed(sym.decimals);
+            document.getElementById('ticket-ask').innerText = sym.ask.toFixed(sym.decimals);
+            document.getElementById('active-symbol-price').innerText = sym.ask.toFixed(sym.decimals);
+            calculateMargin();
+        }
+
+        function calculateMargin() {
+            const lots = parseFloat(document.getElementById('trade-volume').value) || 0.01;
+            const price = marketData[selectedSymbol].ask;
+            const margin = (price * lots * 1000) / 100; // 1:100 leverage estimate
+            document.getElementById('summary-margin').innerText = `$${margin.toFixed(2)}`;
+        }
+
+        // Trade Order Submission
+        function submitTrade(side) {
+            const volume = parseFloat(document.getElementById('trade-volume').value);
+            const sym = marketData[selectedSymbol];
+            const executionPrice = side === 'BUY' ? sym.ask : sym.bid;
+
+            const trade = {
+                id: Math.floor(10000000 + Math.random() * 90000000),
+                symbol: selectedSymbol,
+                type: side,
+                lots: volume,
+                openPrice: executionPrice,
+                currentPrice: executionPrice,
+                sl: document.getElementById('trade-sl').value || '-',
+                tp: document.getElementById('trade-tp').value || '-',
+                pnl: 0.00
+            };
+
+            activePositions.push(trade);
+            renderPositions();
+        }
+
+        function closePosition(id) {
+            activePositions = activePositions.filter(p => p.id !== id);
+            renderPositions();
+        }
+
+        function renderPositions() {
+            const tableBody = document.getElementById('positions-table-body');
+            tableBody.innerHTML = '';
+            document.getElementById('open-count').innerText = activePositions.length;
+
+            let totalPnL = 0;
+
+            activePositions.forEach(pos => {
+                const info = marketData[pos.symbol];
+                const diff = pos.type === 'BUY'
+                    ? (pos.currentPrice - pos.openPrice)
+                    : (pos.openPrice - pos.currentPrice);
+
+                pos.pnl = diff * pos.lots * 10000;
+                totalPnL += pos.pnl;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>#${pos.id}</td>
+                    <td><strong>${pos.symbol}</strong></td>
+                    <td style="color: ${pos.type === 'BUY' ? 'var(--xm-green)' : 'var(--xm-red)'}; font-weight: bold;">${pos.type}</td>
+                    <td>${pos.lots}</td>
+                    <td>${pos.openPrice.toFixed(info.decimals)}</td>
+                    <td>${pos.currentPrice.toFixed(info.decimals)}</td>
+                    <td>${pos.sl}</td>
+                    <td>${pos.tp}</td>
+                    <td style="color: ${pos.pnl >= 0 ? 'var(--xm-green)' : 'var(--xm-red)'}; font-weight: bold;">
+                        ${pos.pnl >= 0 ? '+' : ''}$${pos.pnl.toFixed(2)}
+                    </td>
+                    <td><button class="btn-close-pos" onclick="closePosition(${pos.id})">Close</button></td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Update Header Values
+            const equity = accountBalance + totalPnL;
+            document.getElementById('val-equity').innerText = `$${equity.toFixed(2)}`;
+        }
+
+        // Live Market Simulator Feed
+        setInterval(() => {
+            Object.keys(marketData).forEach(sym => {
+                const item = marketData[sym];
+                const shift = (Math.random() - 0.498) * (item.bid * 0.0003);
+                item.bid += shift;
+                item.ask = item.bid + (item.bid * 0.00015);
+
+                const bidEl = document.getElementById(`mw-bid-${sym}`);
+                const askEl = document.getElementById(`mw-ask-${sym}`);
+                if (bidEl && askEl) {
+                    bidEl.innerText = item.bid.toFixed(item.decimals);
+                    askEl.innerText = item.ask.toFixed(item.decimals);
+                }
+
+                if (sym === selectedSymbol) {
+                    candleSeries.update({
+                        time: Math.floor(Date.now() / 1000),
+                        open: item.bid,
+                        high: item.bid + (item.bid * 0.0001),
+                        low: item.bid - (item.bid * 0.0001),
+                        close: item.bid
+                    });
+                    updateOrderPanel();
+                }
+
+                // Update Position Prices
+                activePositions.forEach(p => {
+                    if (p.symbol === sym) {
+                        p.currentPrice = p.type === 'BUY' ? item.bid : item.ask;
+                    }
+                });
+            });
+
+            renderPositions();
+        }, 1000);
+
+        // Responsive Chart Resize
+        window.addEventListener('resize', () => {
+            chart.applyOptions({
+                width: chartContainer.clientWidth,
+                height: chartContainer.clientHeight
+            });
+        });
+
+        // Initialize First View
+        renderMarketWatch();
+        selectSymbol('EUR/USD');
+    </script>
+</body>
+</html>
